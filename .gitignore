@@ -1,7 +1,6 @@
 build/
 dist/
 res/*
-!res/QRcode.jpg
 !res/stealth.min.js
 !res/zhs.ico
 .obsidian/

@@ -1,5 +1,6 @@
 # encoding=utf-8
 import configparser
+import ctypes
 import re
 
 
@@ -18,7 +19,14 @@ class Config:
             # 脚本选项
             self.enableAutoCaptcha = self.get_bool_field('script-option', 'enableAutoCaptcha')
             self.enableHideWindow = self.get_bool_field('script-option', 'enableHideWindow')
-            self.showDonateCode = self.get_bool_field("script-option", "showDonateCode")
+            # 并发选项
+            self.maxBrowserInstances = self.get_int_field(
+                'concurrency-option',
+                'maxBrowserInstances',
+                4,
+                1,
+                self.get_memory_instance_limit(),
+            )
             # 课程选项
             self.soundOff = self.get_bool_field('course-option', 'soundOff')
             self.course_match_rule = re.compile("https://[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]")
@@ -32,11 +40,11 @@ class Config:
         self.close_ques = '''document.dispatchEvent(new KeyboardEvent('keydown', {bubbles: true, keyCode: 27 }));'''
 
         # 视频元素修改
-        self.remove_pause = "document.querySelector('video').pause = ()=>{}"
-        self.play_video = '''const video = document.querySelector('video');video.play();'''
-        self.volume_none = "document.querySelector('video').volume=0;"
-        self.set_none_icon = '''document.querySelector(".volumeBox").classList.add("volumeNone")'''
-        self.reset_curtime = '''document.querySelector('video').currentTime=0;'''
+        self.remove_pause = "const video=document.querySelector('video');if(video){video.pause=()=>{}}"
+        self.play_video = '''const video = document.querySelector('video');if(video){video.play();}'''
+        self.volume_none = "const video=document.querySelector('video');if(video){video.volume=0;video.muted=true;}"
+        self.set_none_icon = '''const volumeBox=document.querySelector(".volumeBox");if(volumeBox){volumeBox.classList.add("volumeNone");}'''
+        self.reset_curtime = '''const video=document.querySelector('video');if(video){video.currentTime=0;}'''
         # 夜间模式
         self.night_js = '''document.getElementsByClassName("Patternbtn-div")[0].click()'''
         # 镜像源
@@ -63,17 +71,54 @@ class Config:
         return driver.lower()
 
     def get_bool_field(self, section: str, option: str) -> bool:
-        field = self._config.get(section, option, raw=True).lower()
+        field = self._config.get(section, option, raw=True, fallback='').lower()
         if field == "true":
             return True
         else:
             return False
+
+    def get_int_field(self, section: str, option: str, default: int, min_value: int, max_value: int) -> int:
+        try:
+            value = self._config.get(section, option, raw=True, fallback='').strip()
+            if not value:
+                return default
+            value = int(value)
+            return min(max(value, min_value), max_value)
+        except (ValueError, configparser.Error):
+            return default
+
+    @staticmethod
+    def get_available_memory_mb() -> int:
+        class MemoryStatusEx(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        status = MemoryStatusEx()
+        status.dwLength = ctypes.sizeof(MemoryStatusEx)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            return int(status.ullAvailPhys // 1024 // 1024)
+        return 8 * 1024
+
+    @classmethod
+    def get_memory_instance_limit(cls) -> int:
+        return max(1, cls.get_available_memory_mb() // 768)
 
     def get_course_urls(self) -> list:
         course_urls = []
         _options = self._config.options("course-url")
         for _option in _options:
             course_url = self._config.get("course-url", _option, raw=True)
+            if not course_url.strip():
+                continue
             matched = re.findall(self.course_match_rule, course_url)
             if not matched:
                 print(f"\"{course_url.strip()}\"\n不是一个有效网址,将忽略该网址.")
@@ -105,8 +150,8 @@ class Config:
 
     @property
     def revise_speed(self) -> str:
-        return f"document.querySelector('video').playbackRate={self.limitSpeed};"
+        return f"const video=document.querySelector('video');if(video){{video.playbackRate={self.limitSpeed};}}"
 
     @property
     def revise_speed_name(self) -> str:
-        return f'''document.querySelector(".speedBox span").innerText = "X {self.limitSpeed}";'''
+        return f'''const speedName=document.querySelector(".speedBox span");if(speedName){{speedName.innerText = "X {self.limitSpeed}";}}'''

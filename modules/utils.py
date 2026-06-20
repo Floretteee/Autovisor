@@ -52,8 +52,8 @@ def bring_console_to_front():
         ctypes.windll.user32.SetForegroundWindow(hwnd)
 
 
-async def display_window(page: Page) -> None:
-    window = await get_browser_window(page)
+async def display_window(page: Page, window_title: str = None) -> None:
+    window = await get_browser_window(page, window_title)
     if window:
         window.show()
         window.restore()
@@ -63,8 +63,8 @@ async def display_window(page: Page) -> None:
         logger.warn("未找到播放窗口!")
 
 
-async def hide_window(page: Page) -> None:
-    window = await get_browser_window(page)
+async def hide_window(page: Page, window_title: str = None) -> None:
+    window = await get_browser_window(page, window_title)
     if window:
         window.hide()
         logger.info("播放窗口已自动隐藏,将在需要安全验证时显示.")
@@ -72,8 +72,8 @@ async def hide_window(page: Page) -> None:
         logger.warn("未找到播放窗口!")
 
 
-async def get_browser_window(page: Page) -> Win32Window | None:
-    custom_title = "Autovisor - Playwright"
+async def get_browser_window(page: Page, window_title: str = None) -> Win32Window | None:
+    custom_title = window_title or "Autovisor - Playwright"
     await page.wait_for_load_state("domcontentloaded")
     await page.evaluate(f'document.title = "{custom_title}"')
     # 获取所有窗口并尝试匹配 Playwright 窗口
@@ -143,7 +143,14 @@ async def get_video_attr(page, attr: str) -> any:
     except TargetClosedError as e:
         logger.debug(f"浏览器关闭时停止读取视频属性 {attr}: {logger.summarize_exception(e)}")
         return None
+    except TimeoutError as e:
+        logger.debug(f"读取视频属性轮询未命中. attr: {attr} {logger.summarize_exception(e)}")
+        return None
     except Exception as e:
+        message = str(e)
+        if "Execution context was destroyed" in message or "Cannot find context with specified id" in message:
+            logger.debug(f"页面切换时停止读取视频属性 {attr}: {logger.summarize_exception(e)}")
+            return None
         logger.log_exception(f"读取视频属性失败. attr: {attr}", e)
         return None
 
@@ -204,4 +211,3 @@ async def get_filtered_class(page: Page, is_new_version=False, is_hike_class=Fal
                     to_learn_class.append(each)
             logger.debug(f"Get to-learn class: {len(all_class)}")
             return to_learn_class
-

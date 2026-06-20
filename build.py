@@ -19,7 +19,6 @@ os.system(cmd)
 
 os.mkdir(f"./dist/{name}/res")
 open(f"./dist/{name}/为防止启动失败, 建议使用Chrome浏览器", "w").close()
-shutil.copyfile("./res/QRcode.jpg", f"./dist/{name}/res/QRcode.jpg")
 shutil.copyfile("./configs.ini", f"./dist/{name}/configs.ini")
 shutil.copyfile("./res/stealth.min.js", f"./dist/{name}/res/stealth.min.js")
 shutil.rmtree("./build", ignore_errors=True)

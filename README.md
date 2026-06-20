@@ -1,6 +1,8 @@
 ##  Autovisor
 
-**Github项目主页：**[CXRunfree/Autovisor](https://github.com/CXRunfree/Autovisor)
+**Github项目主页：**[Floretteee/Autovisor](https://github.com/Floretteee/Autovisor)
+
+**作者：** CXRunfree、Florette
 
 ------
 #### 2026/5/8 公告
@@ -44,6 +46,7 @@
 - **跳过弹窗和弹出的题目**
 - **自动静音、调成指定的倍速**
 - **检测视频是否暂停并续播**
+- **支持多浏览器实例并发学习不同视频资源**
 - **支持刷习惯分**
 - **支持智慧共享课**
 - **支持翻转课**
@@ -69,8 +72,6 @@
 
 **注意: 所有配置项都不加"引号"**
 
-<img src="https://i-blog.csdnimg.cn/direct/e3f06598535c4b48bc1e8a52eb2d0ef8.png"/>
-
 4.运行 **Autovisor.exe**，会自动打开浏览器，进入网课界面后就能自动刷课了 !
 
 (如果未设置 **enableAutoCaptcha=True**, 则需要**手动完成**登录时的滑块验证)
@@ -79,7 +80,7 @@
 
 #### 三、发行版下载:
 
-Github: [Releases · CXRunfree/Autovisor (github.com)](https://github.com/CXRunfree/Autovisor/releases)
+Github: [Releases · Floretteee/Autovisor (github.com)](https://github.com/Floretteee/Autovisor/releases)
 
 网盘备用: [[蓝奏云\] Autovisor-for-windows](https://wwk.lanzouj.com/b05evsxif) 密码:492l
 
@@ -110,18 +111,10 @@ Github: [Releases · CXRunfree/Autovisor (github.com)](https://github.com/CXRunf
 
   
   
-  <img src="https://i-blog.csdnimg.cn/blog_migrate/e8fd696257e0b4623a19d4a9e0448bfd.png" alt="img">
-
 5.关于弹题关不掉/程序卡住的问题:
 
 - 因为弹题是时刻有可能发生的, 而弹题检测不是时刻都进行, 所以这个问题不能完全消除;
 - 3.14以上版本使用 异步+协程 进行答题检测，目前效果非常好，建议更新使用。
-
-6.我已经打赏过了,不希望再弹赞赏码怎么办?
-
-- 感谢您对本项目的支持~ 只需要设置 `showDonateCode = False` 就好了！
-
-------
 
 **已知Bug:**
 
@@ -134,11 +127,4 @@ Github: [Releases · CXRunfree/Autovisor (github.com)](https://github.com/CXRunf
 
 觉得体验还不错 ?  请留下你宝贵的Star ⭐, 并分享给更多有需要的人!
 
-或者为项目发电支持一下 ~ 
-
-<img src="https://i-blog.csdnimg.cn/blog_migrate/0d254d88c1cd0cb0a2fe6c50f8992efb.png" alt="img" style="zoom: 50%;" />
-
-**作者的CSDN:** [欢迎关注~](https://blog.csdn.net/Runfreeone)
-
 **声明：本程序只可用于学习和研究计算机原理, 请于24h删除所有存档 ! **
-

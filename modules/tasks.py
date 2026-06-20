@@ -19,6 +19,8 @@ def is_expected_polling_error(exc: Exception) -> bool:
         "ElementHandle.press",
         "No node found for selector",
         "Execution context was destroyed",
+        "Cannot find context with specified id",
+        "Protocol error (DOM.describeNode)",
     ]
     return any(signal in message for signal in expected_signals)
 
@@ -68,12 +70,29 @@ async def play_video(page: Page) -> None:
     while True:
         try:
             await asyncio.sleep(2)
-            await page.wait_for_selector("video", state="attached", timeout=1000)
-            paused = await page.evaluate("document.querySelector('video').paused")
-            if paused:
+            video = await page.query_selector("video")
+            if not video:
+                continue
+            state = await page.evaluate('''() => {
+                const video = document.querySelector('video');
+                if (!video) return null;
+                return {
+                    paused: video.paused,
+                    ended: video.ended,
+                    readyState: video.readyState,
+                    currentTime: video.currentTime,
+                    duration: video.duration
+                };
+            }''')
+            if state and state.get("paused") and not state.get("ended"):
                 logger.info("检测到视频暂停,正在尝试播放.")
-                await page.wait_for_selector(".videoArea", timeout=1000)
-                await page.evaluate('document.querySelector("video").play();')
+                await page.evaluate('''() => {
+                    const video = document.querySelector('video');
+                    if (!video) return;
+                    video.muted = true;
+                    const playPromise = video.play();
+                    if (playPromise && playPromise.catch) playPromise.catch(() => {});
+                }''')
                 logger.debug("视频已恢复播放.")
         except TargetClosedError:
             logger.debug("浏览器已关闭, 视频播放模块停止运行.")
@@ -129,7 +148,7 @@ async def skip_questions(page: Page, event_loop) -> None:
             continue
 
 
-async def wait_for_verify(page: Page, config, event_loop) -> None:
+async def wait_for_verify(page: Page, config, event_loop, window_title: str = None) -> None:
     await page.wait_for_load_state("domcontentloaded")
     while True:
         try:
@@ -137,11 +156,11 @@ async def wait_for_verify(page: Page, config, event_loop) -> None:
             await page.wait_for_selector(".yidun_modal__title", state="attached", timeout=1000)
             logger.warn("检测到安全验证,请手动完成验证...", shift=True)
             if config.enableHideWindow:
-                await display_window(page)
+                await display_window(page, window_title)
             await page.wait_for_selector(".yidun_modal__title", state="hidden", timeout=24 * 3600 * 1000)
             event_loop.set()
             if config.enableHideWindow:
-                await hide_window(page)
+                await hide_window(page, window_title)
             logger.info("安全验证已完成.", shift=True)
             await asyncio.sleep(30)  # 较长时间内不会再次触发验证
         except TargetClosedError:
@@ -149,7 +168,7 @@ async def wait_for_verify(page: Page, config, event_loop) -> None:
             return
         except Exception as e:
             if is_expected_polling_error(e):
-                logger.debug(f"安全验证模块轮询未命中: {logger.summarize_exception(e)}")
+                pass
             else:
                 logger.log_exception("安全验证模块执行失败.", e)
             continue
